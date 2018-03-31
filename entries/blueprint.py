@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request
 
 from helpers import object_list
-from models import Entry, Tag
+from models import Entry, Tag, entry_tags
 
 entries = Blueprint('entries', __name__, template_folder='templates')
 
@@ -20,9 +20,9 @@ def tag_index():
 
 @entries.route('/tags/<slug>/')
 def tag_detail(slug):
-    tag = Tag.query.filter(Tag.slug == slug).first_or_404()
-    entries = tag.entries.order_by(Entry.created_timestamp.desc())
-    return entry_list('entries/tag_detail.html', entries, tag=tag)
+    tag_names = slug.split('+')
+    entries = Entry.query.join(entry_tags).join(Tag).filter(Tag.slug.in_(tag_names))
+    return entry_list('entries/tag_detail.html', entries)
 
 
 @entries.route('/<slug>/')
@@ -33,6 +33,7 @@ def detail(slug):
 
 def entry_list(template, query, **context):
     search = request.args.get('q')
+    query = query.filter(Entry.status == Entry.STATUS_PUBLIC)
     if search:
         query = query.filter(
             (Entry.body.contains(search)) |
