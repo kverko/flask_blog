@@ -1,7 +1,10 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, redirect, render_template, request, url_for
 
+from forms import EntryForm
 from helpers import object_list
 from models import Entry, Tag, entry_tags
+
+from app import db
 
 entries = Blueprint('entries', __name__, template_folder='templates')
 
@@ -24,6 +27,17 @@ def tag_detail(slug):
     entries = Entry.query.join(entry_tags).join(Tag).filter(Tag.slug.in_(tag_names))
     return entry_list('entries/tag_detail.html', entries)
 
+@entries.route('/create/', methods=['GET', 'POST'])
+def create():
+    form = EntryForm()
+    if request.method == 'POST':
+        form = EntryForm(request.form)
+        if form.validate():
+            entry = form.save_entry(Entry())
+            db.session.add(entry)
+            db.session.commit()
+            return redirect(url_for('entries.detail', slug=entry.slug))
+    return render_template('entries/create.html', form=form)
 
 @entries.route('/<slug>/')
 def detail(slug):
