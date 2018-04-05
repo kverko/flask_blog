@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from forms import EntryForm
 from helpers import object_list
@@ -36,6 +36,7 @@ def create():
             entry = form.save_entry(Entry())
             db.session.add(entry)
             db.session.commit()
+            flash('Entry "{}" created successfully.'.format(entry.title), 'success')
             return redirect(url_for('entries.detail', slug=entry.slug))
     return render_template('entries/create.html', form=form)
 
@@ -53,18 +54,20 @@ def edit(slug):
             entry = form.save_entry(entry)
             db.session.add(entry)
             db.session.commit()
+            flash('Entry "{}" has been saved.'.format(entry.title), 'success')
             return redirect(url_for('entries.detail', slug=entry.slug))
     else:
         form = EntryForm(obj=entry)
     return render_template('entries/edit.html', entry=entry, form=form)
 
-@entries.route('/<slug>/delete/'. methods=['GET', 'POST'])
+@entries.route('/<slug>/delete/', methods=['GET', 'POST'])
 def delete(slug):
     entry = get_entry_or_404(slug)
     if request.method == 'POST':
         entry.status = Entry.STATUS_DELETED
         db.session.add(entry)
         db.session.commit()
+        flash('Entry "{}" has been deleted.'.format(entry.title), 'success')
         return redirect(url_for('entries.index'))
     return render_template('entries/delete.html', entry=entry)
 
@@ -83,4 +86,4 @@ def get_entry_or_404(slug):
     valid_statuses = (Entry.STATUS_PUBLIC, Entry.STATUS_DRAFT)
     return Entry.query.filter(
         (Entry.slug == slug) &
-        (Entry.status.in_(valid_statuses))).first_or_404())
+        (Entry.status.in_(valid_statuses))).first_or_404()
